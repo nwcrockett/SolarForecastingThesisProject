@@ -11,7 +11,7 @@ def hourly_data_to_csv(file_path):
     When this runs it is going to be really slow. Keep this in mind. Running only one
     side of these files takes 20 minutes for 4 files.
 
-    Takes the netcdf files from the two sources of hourly data and outputs to csv files. 
+    Takes the netcdf files from the two sources of hourly data and outputs to csv files.
 
     :param file_path: path to the netcdf files
     :return: nothing. Outputs 24 csv files
@@ -264,11 +264,29 @@ def handle_minute_data(file_path, storage_path):
             df_minute_data.to_csv(storage_path + "/" + year + "/minute_data_" + str(month) + ".csv")
 
 
+def put_minute_data_into_a_year(file_path):
+    files = os.listdir(file_path)
+    for year in files:
+        csv_files = os.listdir(file_path + "/" + year)  # lists current directory
+        csv_files.sort()
+        csv_files = pd.Series(csv_files)
+        minute_data = csv_files[csv_files.str.startswith("minute")]
+        minute_data.reindex([0, 4, 5, 6, 7, 8, 9, 10, 11, 1, 2, 3])
+        dfs = []
+        for item in minute_data:
+            df = pd.read_csv(file_path + "/" + year + "/" + item)  # read in csv file of minute data
+            dfs.append(df)
+
+        yearly_data = pd.concat(dfs, sort=False)
+        yearly_data.to_csv(file_path + "/" + year + "/minute_data_total_year.csv")
+
+
 if __name__ == "__main__":
     ARM_files = "/hdd/ARM files for thesis"
     data_storage = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data"
-    hourly_data_to_csv(ARM_files)
-    handle_minute_data(ARM_files, data_storage)
+    # hourly_data_to_csv(ARM_files)
+    # handle_minute_data(ARM_files, data_storage)
+    put_minute_data_into_a_year(data_storage)
 
 
 
