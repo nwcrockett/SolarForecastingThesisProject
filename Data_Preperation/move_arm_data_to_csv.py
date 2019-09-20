@@ -5,6 +5,10 @@ import xarray as xr
 # gets a list of files from the location stored in the file directory
 import os
 
+train = [2006, 2007, 2008, 2009, 2010, 2011, 2012]
+test = [2015, 2016]
+validate = [2013, 2014]
+
 
 def hourly_data_to_csv(file_path):
     """
@@ -12,6 +16,8 @@ def hourly_data_to_csv(file_path):
     side of these files takes 20 minutes for 4 files.
 
     Takes the netcdf files from the two sources of hourly data and outputs to csv files.
+
+    Code needs to be adjusted due to directory changes
 
     :param file_path: path to the netcdf files
     :return: nothing. Outputs 24 csv files
@@ -24,6 +30,9 @@ def hourly_data_to_csv(file_path):
     nc_files = nc_files.sort_values()  # Sort files into correct timeseries order
     cdf_files = needed_files[needed_files.str.endswith("cdf")]
     cdf_files = cdf_files.sort_values()  # Sort files into correct timeseries order
+
+    df_2011 = None
+    got_other_2011 = False
 
     year = 2006
     for item in nc_files:
@@ -43,9 +52,18 @@ def hourly_data_to_csv(file_path):
             "lwdn", "stdev_lwdn", "qc_lwdn",
             "lwup", "stdev_lwup", "qc_lwup",
             "sw_net_TOA", "sw_dn_TOA", "totswfluxdn",
-            "qc_totswfluxdn", "stdev_totswfluxdn", "alt"], decode_times=False)
+            "qc_totswfluxdn", "stdev_totswfluxdn", "alt",
+            "qc_cld_frac", "cld_frac_radar"], decode_times=False)
 
         df = ds.to_dataframe()
+
+        if year == 2011 and got_other_2011:  # fix of a problem not testing at this time. Test later
+            df_2011 = df
+            got_other_2011 = True
+            continue
+        if year == 2011 and got_other_2011:
+            df = pd.concat([df_2011, df])
+
         # Add base time (seconds since 1970-1-1 0:00:00 0:00) which in 2006 Jan 1st in this case
         # and the time offset. This will get me a useable timestamp in time_offset that
         # I can make into a datetime
@@ -54,38 +72,18 @@ def hourly_data_to_csv(file_path):
 
         df = df.drop("base_time", axis=1)
         df = df.set_index("time_offset")
-        df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/" + str(year) + "/" +
-                  + temp_name[0] + temp_name[2]
-                  + "nc.csv")
-        year += 1
-
-    year = 2006
-    for item in cdf_files:
-        print("cdf cycles")
-        # Used for naming the file
-        temp_name = item.split(".")
-
-        # Opens up the netcdf data file, drops the below variables
-        ds = xr.open_dataset(file_path + "/" + item, drop_variables=[
-            "cld_frac", "cld_frac_MMCR", "cld_frac_MPL",
-            "qc_cld_frac", "time_bounds", "time_offset",
-            "time_bounds", "height", "base_time",
-            "lon", "lat", "qc_cld_frac_source",
-            "qc_cld_base_source", "swdif", "stdev_swdif",
-            "qc_swdif", "swdir", "stdev_swdir",
-            "qc_swdir", "swup", "stdev_swup",
-            "qc_swup", "lwdn", "stdev_lwdn",
-            "qc_lwdn", "lwup", "stdev_lwup",
-            "qc_lwup", "lwnet_TOA_sat_VISST", "swnet_TOA_sat_VISST",
-            "swdn_TOA_sat_VISST", "lwnet_TOA_sat_CERES", "swnet_TOA_sat_CERES",
-            "swnet_clr_TOA_sat_CERES", "lwnet_clr_TOA_sat_CERES", "swdn_TOA_sat_CERES",
-            "num_samples_sat_CERES", "source_sat_CERES"
-        ])
-
-        df = ds.to_dataframe()
-        df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/" + str(year) + "/" +
-                  + temp_name[0] + temp_name[2]
-                  + "cdf.csv")
+        if year in train:
+            df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/train/" + str(year) + "/"
+                      + str(temp_name[0]) + str(temp_name[2])
+                      + "nc.csv")
+        elif year in validate:
+            df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/validate/" + str(year) + "/"
+                      + str(temp_name[0]) + str(temp_name[2])
+                      + "nc.csv")
+        elif year in test:
+            df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/test/" + str(year) + "/"
+                      + str(temp_name[0]) + str(temp_name[2])
+                      + "nc.csv")
         year += 1
 
 
@@ -271,10 +269,11 @@ def put_minute_data_into_a_year(file_path):
         csv_files.sort()
         csv_files = pd.Series(csv_files)
         minute_data = csv_files[csv_files.str.startswith("minute")]
-        minute_data.reindex([0, 4, 5, 6, 7, 8, 9, 10, 11, 1, 2, 3])
+        minute_data = minute_data.reindex([0, 4, 5, 6, 7, 8, 9, 10, 11, 1, 2, 3])
         dfs = []
         for item in minute_data:
-            df = pd.read_csv(file_path + "/" + year + "/" + item)  # read in csv file of minute data
+            df = pd.read_csv(file_path + "/" + year + "/" + item, index_col="time")  # read in csv file of minute data
+            df = df.drop(columns=["Unnamed: 0"])
             dfs.append(df)
 
         yearly_data = pd.concat(dfs, sort=False)
@@ -284,9 +283,9 @@ def put_minute_data_into_a_year(file_path):
 if __name__ == "__main__":
     ARM_files = "/hdd/ARM files for thesis"
     data_storage = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data"
-    # hourly_data_to_csv(ARM_files)
+    hourly_data_to_csv(ARM_files)
     # handle_minute_data(ARM_files, data_storage)
-    put_minute_data_into_a_year(data_storage)
+    # put_minute_data_into_a_year(data_storage)
 
 
 

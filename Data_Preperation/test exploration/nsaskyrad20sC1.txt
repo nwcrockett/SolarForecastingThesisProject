@@ -1,0 +1,122 @@
+netcdf nsaskyrad20sC1.a0.20060808.000000 {
+dimensions:
+	time = UNLIMITED ; // (4320 currently)
+variables:
+	int base_time ;
+		base_time:string = "7-Aug-2006,23:59:20 GMT" ;
+		base_time:long_name = "Base time in Epoch" ;
+		base_time:units = "seconds since 1970-1-1 0:00:00 0:00" ;
+	double time_offset(time) ;
+		time_offset:long_name = "Time offset from base_time" ;
+		time_offset:units = "seconds since 2006-08-07 23:59:20 0:00" ;
+	double time(time) ;
+		time:long_name = "Time offset from midnight" ;
+		time:units = "seconds since 2006-08-08 00:00:00 0:00" ;
+	float inst_down_long_shaded1_dome_resist(time) ;
+		inst_down_long_shaded1_dome_resist:long_name = "Instantaneous Downwelling Pyrgeometer Dome Thermistor Resistance, Shaded Pyrgeometer1" ;
+		inst_down_long_shaded1_dome_resist:units = "Kohms" ;
+		inst_down_long_shaded1_dome_resist:missing_value = -9999.f ;
+		inst_down_long_shaded1_dome_resist:ventilation_status = "Ventilated" ;
+	float inst_down_long_shaded1_case_resist(time) ;
+		inst_down_long_shaded1_case_resist:long_name = "Instantaneous Downwelling Pyrgeometer Case Thermistor Resistance, Shaded Pyrgeometer1" ;
+		inst_down_long_shaded1_case_resist:units = "Kohms" ;
+		inst_down_long_shaded1_case_resist:missing_value = -9999.f ;
+		inst_down_long_shaded1_case_resist:ventilation_status = "Ventilated" ;
+	float inst_down_long_shaded2_dome_resist(time) ;
+		inst_down_long_shaded2_dome_resist:long_name = "Instantaneous Downwelling Pyrgeometer Dome Thermistor Resistance, Shaded Pyrgeometer2" ;
+		inst_down_long_shaded2_dome_resist:units = "Kohms" ;
+		inst_down_long_shaded2_dome_resist:missing_value = -9999.f ;
+		inst_down_long_shaded2_dome_resist:ventilation_status = "Ventilated" ;
+	float inst_down_long_shaded2_case_resist(time) ;
+		inst_down_long_shaded2_case_resist:long_name = "Instantaneous Downwelling Pyrgeometer Case Thermistor Resistance, Shaded Pyrgeometer2" ;
+		inst_down_long_shaded2_case_resist:units = "Kohms" ;
+		inst_down_long_shaded2_case_resist:missing_value = -9999.f ;
+		inst_down_long_shaded2_case_resist:ventilation_status = "Ventilated" ;
+	float inst_down_long_hemisp_shaded1_tp(time) ;
+		inst_down_long_hemisp_shaded1_tp:long_name = "Instantaneous Downwelling Pyrgeometer Thermopile, Shaded Pyrgeometer1" ;
+		inst_down_long_hemisp_shaded1_tp:units = "mV" ;
+		inst_down_long_hemisp_shaded1_tp:missing_value = -9999.f ;
+		inst_down_long_hemisp_shaded1_tp:ventilation_status = "Ventilated" ;
+	float inst_down_long_hemisp_shaded2_tp(time) ;
+		inst_down_long_hemisp_shaded2_tp:long_name = "Instantaneous Downwelling Pyrgeometer Thermopile, Shaded Pyrgeometer2" ;
+		inst_down_long_hemisp_shaded2_tp:units = "mV" ;
+		inst_down_long_hemisp_shaded2_tp:missing_value = -9999.f ;
+		inst_down_long_hemisp_shaded2_tp:ventilation_status = "Ventilated" ;
+	float inst_diffuse(time) ;
+		inst_diffuse:long_name = "Instantaneous Uncorrected Downwelling Shortwave Diffuse, Shaded Pyranometer Thermopile Voltage" ;
+		inst_diffuse:units = "mV" ;
+		inst_diffuse:missing_value = -9999.f ;
+		inst_diffuse:ventilation_status = "Ventilated" ;
+	float inst_direct_normal(time) ;
+		inst_direct_normal:long_name = "Instantaneous Direct Normal Shortwave Irradiance, Pyrheliometer Thermopile Voltage" ;
+		inst_direct_normal:units = "mV" ;
+		inst_direct_normal:missing_value = -9999.f ;
+	float inst_global(time) ;
+		inst_global:long_name = "Instantaneous Downwelling Hemispheric Shortwave, Unshaded Pyranometer Thermopile Voltage" ;
+		inst_global:units = "mV" ;
+		inst_global:missing_value = -9999.f ;
+	float inst_sky_ir_signal(time) ;
+		inst_sky_ir_signal:long_name = "Instantaneous Sky/Cloud Infrared" ;
+		inst_sky_ir_signal:units = "V" ;
+		inst_sky_ir_signal:missing_value = -9999.f ;
+	float lat ;
+		lat:long_name = "north latitude" ;
+		lat:units = "degrees" ;
+		lat:valid_min = -90.f ;
+		lat:valid_max = 90.f ;
+	float lon ;
+		lon:long_name = "east longitude" ;
+		lon:units = "degrees" ;
+		lon:valid_min = -180.f ;
+		lon:valid_max = 180.f ;
+	float alt ;
+		alt:long_name = "altitude" ;
+		alt:units = "meters above Mean Sea Level" ;
+
+// global attributes:
+		:ingest_software = " sirs_ingest.c,v 6.19 2005/06/17 19:31:21 choudhury process-ingest-sirs_ingest-9.6-0 $" ;
+		:proc_level = "a0" ;
+		:input_source = "skyrad1:/data/collection/nsa/nsaskyradC1.00//SkyRad.20060808000000.dat" ;
+		:site_id = "nsa" ;
+		:facility_id = "C1 : PAARCS2:NSA-Barrow_Central_Facility" ;
+		:comment = " " ;
+		:resolution_description = "The resolution field attributes refer to the number of significant\n",
+			"digits relative to the decimal point that should be used in\n",
+			"calculations.  Using fewer digits might result in greater uncertainty;\n",
+			"using a larger number of digits should have no effect and thus is\n",
+			"unnecessary.  However, analyses based on differences in values with\n",
+			"a larger number of significant digits than indicated could lead to\n",
+			"erroneous results or misleading scientific conclusions.\n",
+			"\n",
+			"resolution for lat= 0.001\n",
+			"resolution for lon = 0.001\n",
+			"resolution for alt = 1" ;
+		:averaging_int = "None" ;
+		:sample_int = "20 seconds" ;
+		:platform_id = "213" ;
+		:serial_number = "PIR1-DIR:       31297F3\n",
+			"PIR2-DIR:       32047F3\n",
+			"Diffuse PSP:   33258F3\n",
+			"NIP:           31759E6\n",
+			"PSP-DS:        32014F3\n",
+			"SKY-IR:         2301\n",
+			"" ;
+		:calib_coeff = "calib_coeff_k0 = PIR1-DIR:     0.0000 W/m^2\n",
+			"calib_coeff_k1 = PIR1-DIR:     0.2604 W/(m^2*uV)\n",
+			"calib_coeff_k2 = PIR1-DIR:     1.0000 unitless\n",
+			"calib_coeff_k3 = PIR1-DIR:     -4.0000 unitless\n",
+			"calib_coeff_kr = PIR1-DIR:     0.000000 K/uV\n",
+			"calib_coeff_k0 = PIR2-DIR:     0.0000 W/m^2\n",
+			"calib_coeff_k1 = PIR2-DIR:     0.2513 W/(m^2*uV)\n",
+			"calib_coeff_k2 = PIR2-DIR:     1.0000 unitless\n",
+			"calib_coeff_k3 = PIR2-DIR:     -4.0000 unitless\n",
+			"calib_coeff_kr = PIR2-DIR:     0.000000 K/uV\n",
+			"Diffuse PSP: 111.12 W/(m^2*mV)\n",
+			"NIP:         118.25 W/(m^2*mV)\n",
+			"PSP-DS:      113.95 W/(m^2*mV)\n",
+			"SKY-IR:      25.00 K/V\n",
+			"SKY-IR-OFFSET:      213.2000 K\n",
+			"" ;
+		:zeb_platform = "nsaskyrad20sC1.a0" ;
+		:history = "created by user dsmgr on machine ruby at 8-Aug-2006,2:49:20, using $State: ds-zebra-zeblib-4.13-0 $" ;
+}
