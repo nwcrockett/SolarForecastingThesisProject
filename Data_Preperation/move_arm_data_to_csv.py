@@ -73,15 +73,18 @@ def hourly_data_to_csv(file_path):
         df = df.drop("base_time", axis=1)
         df = df.set_index("time_offset")
         if year in train:
-            df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/train/" + str(year) + "/"
+            df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/train/"
+                      + str(year) + "/PreProcessed_data/"
                       + str(temp_name[0]) + str(temp_name[2])
                       + "nc.csv")
         elif year in validate:
-            df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/validate/" + str(year) + "/"
+            df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/validate/"
+                      + str(year) + "/PreProcessed_data/"
                       + str(temp_name[0]) + str(temp_name[2])
                       + "nc.csv")
         elif year in test:
-            df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/test/" + str(year) + "/"
+            df.to_csv("/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/test/"
+                      + str(year) + "/PreProcessed_data/"
                       + str(temp_name[0]) + str(temp_name[2])
                       + "nc.csv")
         year += 1
