@@ -167,7 +167,7 @@ def test_arima_parameters_short_sample(df, p_max=10, d_max=2, q_max=3, start_ran
                 predicted, expected = arima_short_range_forecast(sample, p=p, d=d, q=q)
                 predicted = np.array(predicted)
                 expected = np.array(expected)
-                results = forecast_accuracy(predicted, expected)
+                results = forecast_evals(predicted, expected)
                 parameters = " p={} d={} q={}".format(p, d, q)
                 print(str(results) + parameters)
                 file.write(str(results) + parameters + "\n")

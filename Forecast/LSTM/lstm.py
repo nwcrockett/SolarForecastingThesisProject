@@ -319,6 +319,7 @@ def make_lstm(lagged_timesteps, epochs):
     model, history = build_model(lagged_timesteps,
                                  x_train, y_train, val=(x_val, y_val), epochs=epochs)
     timestep_history = [x_train for x_train in data_solar_train]
+    timestep_history = timestep_history[-2:]
 
     # began forecasting on the testing data
     predictions = list()
@@ -330,15 +331,28 @@ def make_lstm(lagged_timesteps, epochs):
         # appends new data to the very end of the history
         # this is how the test data is added to the whole thing
         timestep_history.append(data_solar_test[i, :])
+        timestep_history = timestep_history[-2:]
 
     predictions = array(predictions)
     expected_values = array(expected_values)
 
     # calculate metrics for eval
-    residuals, scores = forecast_evals(predictions, expected_values)
+    residuals_6_months, scores_6_months = forecast_evals(predictions[:int(len(predictions) / 4)],
+                                                         expected_values[:int(len(predictions) / 4)])
     file = open(score_file, "w")
-    file.write(str(scores) + "\n")
-    print(scores)
+    file.write(str(scores_6_months) + " 1/4 scores\n")
+    print(str(scores_6_months) + " 1/4 scores\n")
+
+    residuals_year, scores_year = forecast_evals(predictions[:int(len(predictions) / 2)],
+                                                 expected_values[:int(len(predictions) / 2)])
+    file.write(str(scores_year) + " 1/2 scores\n")
+    print(str(scores_year) + " 1/2 scores\n")
+
+    residuals, scores = forecast_evals(predictions, expected_values)
+    file.write(str(scores) + " full scores\n")
+    print(str(scores) + " full scores\n")
+
+
 
     # graph loss
     plt.style.use("ggplot")
@@ -354,8 +368,8 @@ def make_lstm(lagged_timesteps, epochs):
 
 
 if __name__ == "__main__":
-    e = 50
-    lags = [20, 40, 60]
+    e = 2
+    lags = [20, 30, 40]
 
     for i in lags:
         make_lstm(i, e)
