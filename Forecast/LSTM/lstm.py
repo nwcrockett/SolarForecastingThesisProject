@@ -354,9 +354,12 @@ def make_lstm(lagged_timesteps, epochs):
 
 
 if __name__ == "__main__":
-    make_lstm(5, 10)
-    # lagged_timesteps = 5
-    # epochs = 10
+    e = 50
+    lags = [20, 40, 60]
+
+    for i in lags:
+        make_lstm(i, e)
+
 
 
 
