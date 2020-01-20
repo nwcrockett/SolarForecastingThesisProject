@@ -11,31 +11,100 @@ from math import sqrt
 from statsmodels.tsa.stattools import acf
 import pmdarima as pm
 
+EPSILON = 1e-10
+np.set_printoptions(precision=3, suppress=True)
 
-def forecast_accuracy(forecast, actual):
+
+"""
+Taken from https://gist.github.com/bshishov/5dc237f59f019b26145648e2124ca1c9
+github user Boris Shishov bshishov
+Took since I find this to be really useful code for this project and others
+
+"""
+
+def _percentage_error(actual: np.ndarray, predicted: np.ndarray):
     """
-    Taken from https://www.machinelearningplus.com/time-series/arima-model-time-series-forecasting-python/
-
-
-    :param forecast:
-    :param actual:
-    :return:
+    Percentage error
+    Note: result is NOT multiplied by 100
     """
-    mape = np.mean(np.abs(forecast - actual)/np.abs(actual))  # MAPE
-    me = np.mean(forecast - actual)             # ME
-    mae = np.mean(np.abs(forecast - actual))    # MAE
-    mpe = np.mean((forecast - actual)/actual)   # MPE
-    rmse = np.mean((forecast - actual)**2)**.5  # RMSE
-    corr = np.corrcoef(forecast, actual)[0,1]   # corr
-    mins = np.amin(np.hstack([forecast[:, None],
-                              actual[:, None]]), axis=1)
-    maxs = np.amax(np.hstack([forecast[:, None],
-                              actual[:, None]]), axis=1)
-    minmax = 1 - np.mean(mins/maxs)             # minmax
-    # acf1 = acf(fc-test)[1]                      # ACF1
-    return({'mape':mape, 'me':me, 'mae': mae,
-            'mpe': mpe, 'rmse':rmse, # 'acf1':acf1,
-            'corr':corr, 'minmax':minmax})
+    return _error(actual, predicted) / (actual + EPSILON)
+
+
+def _error(actual: np.ndarray, predicted: np.ndarray):
+    """ Simple error """
+    return actual - predicted
+
+
+def mae(actual: np.ndarray, predicted: np.ndarray):
+    """ Mean Absolute Error """
+    return np.mean(np.abs(_error(actual, predicted)))
+
+
+def _naive_forecasting(actual: np.ndarray, seasonality: int = 1):
+    """ Naive forecasting method which just repeats previous samples """
+    return actual[:-seasonality]
+
+
+def mase(actual: np.ndarray, predicted: np.ndarray, seasonality: int = 1):
+    """
+    Mean Absolute Scaled Error
+    Baseline (benchmark) is computed with naive forecasting (shifted by @seasonality)
+    """
+    return mae(actual, predicted) / mae(actual[seasonality:], _naive_forecasting(actual, seasonality))
+
+
+
+def forecast_evals(forecasted: np.ndarray, actual: np.ndarray):
+
+    try:
+        me = np.mean(forecasted - actual)  # mean error
+    except Exception as err:
+        me = 'Unable to compute metric {0}'.format(err)
+
+    try:
+        mae_ = np.mean(np.abs(forecasted - actual))  # mean absolute error
+    except Exception as err:
+        mae_ = 'Unable to compute metric {0}'.format(err)
+
+    try:
+        mse = mean_squared_error(forecasted, actual)  # mean squared error
+    except Exception as err:
+        mse = 'Unable to compute metric {0}'.format(err)
+
+    try:
+        rmse = np.mean((forecasted - actual) ** 2) ** .5  # Root Mean Squared Error
+    except Exception as err:
+        rmse = 'Unable to compute metric {0}'.format(err)
+
+    try:
+        corr = np.corrcoef(forecasted, actual)[0, 1]
+    except Exception as err:
+        corr = 'Unable to compute metric {0}'.format(err)
+
+    try:
+        over_expect = sum(forecasted > actual) / len(actual)  # percentage that forecasted
+    except Exception as err:
+        over_expect = 'Unable to compute metric {0}'.format(err)
+    # over predicts the actual
+
+    try:
+        residuals = forecasted - actual
+    except Exception as err:
+        residuals = 'Unable to compute metric {0}'.format(err)
+
+    try:
+        mfe = np.mean(residuals)  # mean of the residuals
+    except Exception as err:
+        mfe = 'Unable to compute metric {0}'.format(err)
+
+    try:
+        mase_ = mase(actual, forecasted)
+    except Exception as err:
+        mase_ = 'Unable to compute metric {0}'.format(err)
+
+    return residuals, ({'me': me, 'mae': mae_, "mse": mse,
+              'rmse': rmse, "over_shot": over_expect, "mfe": mfe,
+             'corr': corr, "mase": mase_})
 
 
 def long_form_arima_test_exploration():

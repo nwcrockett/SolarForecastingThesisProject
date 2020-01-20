@@ -1,19 +1,36 @@
+"""
+Nelson Crockett
+19JAN20
+LSTM multi-variable code for solar forecasting thesis project
+
+I must note that I have code from github user Boris Shishov bshishov
+Taken from https://gist.github.com/bshishov/5dc237f59f019b26145648e2124ca1c9
+Used to evaluate forecast variables. Mainly for Mean absolute scaled error
+
+I also had part of my code inspired from code from Jason Brownlee
+book Deep Learning Time Series Forecasting
+publisher machine learning mastery
+
+
+"""
+
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_squared_error
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.layers import Flatten
-from keras.layers import Dropout
 from keras.layers import LSTM
 from keras.layers import RepeatVector
 from keras.layers import TimeDistributed
-from keras.utils import to_categorical
+from keras.callbacks import ModelCheckpoint
+from keras.callbacks import EarlyStopping
 from numpy import array
 from numpy import split
 import numpy as np
 from sklearn.metrics import mean_squared_error
-from math import sqrt
+import matplotlib.pyplot as plt
+# also need h5py
+# will want to use gpu, I do so through tensorflow gpu with anaconda, you will know it is working when
+# you call on keras. Will show up as part of the output of the code.
 
 EPSILON = 1e-10
 np.set_printoptions(precision=3, suppress=True)
@@ -59,9 +76,15 @@ def mase(actual: np.ndarray, predicted: np.ndarray, seasonality: int = 1):
 
 
 def normalize_data(df):
-    x = df.values
+    """
+    Normalizes the data to number between [-1, 1] inclusive.
+
+    :param df: data to normalize
+    :return: the newly scaled data
+    """
+    x_train = df.values
     scaler = MinMaxScaler()
-    x_scaled = scaler.fit_transform(x)
+    x_scaled = scaler.fit_transform(x_train)
     return pd.DataFrame(x_scaled, columns=df.columns)
 
 
@@ -91,6 +114,13 @@ def chunk_data(data, chunk_size):
 
 
 def forecast_evals(forecasted: np.ndarray, actual: np.ndarray):
+    """
+    Calculates several different forecast evaluation methods.
+
+    :param forecasted: data predicted using the forecast model
+    :param actual: actual value excepted
+    :return:
+    """
 
     try:
         me = np.mean(forecasted - actual)  # mean error
@@ -156,12 +186,12 @@ def split_data_to_x_y(data, input_length, output_length=20, only_window=True, fo
     :param output_length:
     :param only_window: controller on the type of output. If true is is univariate. If false still
     univariate but now also forecasts a series of timesteps
-    :return: the x an y, info and forecast for the lstm
+    :return: the x_train an y_train, info and forecast for the lstm
     """
     # put data back into continuous matrix
     data = data.reshape((data.shape[0] * data.shape[1], data.shape[2]))
-    X = []
-    y = []
+    x_train = []
+    y_train = []
     start_point = 0  # start gathering training data at the beginning
 
     # move over data one time step at a time
@@ -171,21 +201,35 @@ def split_data_to_x_y(data, input_length, output_length=20, only_window=True, fo
         output_data_end = input_data_end + output_length
 
         if output_data_end <= len(data):
-            X.append(data[start_point:input_data_end, 0:-1])
+            x_train.append(data[start_point:input_data_end, 0:-1])
             if only_window:
                 # arrays are set to get the info into [samples, timestep, feature]
-                y.append([[data[input_data_end, -1]]])
+                y_train.append([[data[input_data_end, -1]]])
             else:
-                y.append(data[input_data_end:output_data_end, forecast_column_index])
+                y_train.append(data[input_data_end:output_data_end, forecast_column_index])
 
         start_point += 1  # move ahead one time step
 
-    return array(X), array(y)
+    return array(x_train), array(y_train)
 
 
-def build_model(train_x, train_y):
+def build_model(lag, train_x, train_y, val=None, epochs=10, verbose=1, batch_size=16):
+    """
+    Builds and fits the LSTM model. Will save the best current model as training occurs.
+    Also will currently stop early if a better model is not found within 5 epochs.
+
+    :param lag: amount of lag used in the model for timesteps. Only in here to add to the saved file to
+    differenate between different LSTM models. So that different lag values can be tested.
+    :param train_x: features that will be used to train the lstm. Multi variable in this code
+    :param train_y: expected output
+    :param val: validation data
+    :param epochs: number of epochs to be used to train the model
+    :param verbose: controller for keras if output should be given as the model is trained. Set to true
+    :param batch_size: Batch size for the training data.
+    :return: the trained model and the model history.
+    """
     # define parameters
-    verbose, epochs, batch_size = 1, 10, 16
+    lag = str(lag)
     n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
     # reshape output into [samples, timesteps, features]
     # train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
@@ -197,12 +241,31 @@ def build_model(train_x, train_y):
     model.add(TimeDistributed(Dense(100, activation='relu')))
     model.add(TimeDistributed(Dense(1)))
     model.compile(loss='mse', optimizer='adam')
+    filepath = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project" \
+                          "/Forecast/LSTM/LSTM_multi_var_lag_" + lag + \
+                          "-weights-improvement-{epoch:02d}-{val_loss:.2f}.hdf5."
+    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
+    callbacks_list = [checkpoint, es]
     # fit network
-    model.fit(train_x, train_y, epochs=epochs, batch_size=batch_size, verbose=verbose)
-    return model
+    history = model.fit(train_x, train_y, epochs=epochs, batch_size=batch_size,
+              verbose=verbose, validation_data=val, callbacks=callbacks_list)
+    return model, history
 
 
-def forecast(model, history, n_input, single_value=True):
+def forecast(model, history, n_input):
+    """
+    Takes in the lstm model, data, and the lagged input value. Flattens out the data into a 2D matrix
+    then grabs the amount of time steps based on the lag value. Excluding the forecast data.
+    Reshapes that data into the expected [samples, timesteps, features] for the forecast. For this
+    the sample will be one. Makes the forecast while grabbing the expected value from the data for a
+    20 minute forecast. Returns both of those values with only the numbers no added dimensions
+
+    :param model: trained LSTM model
+    :param history: starts off with all training data, then adds in new testing data
+    :param n_input: size of the lagged input features
+    :return: forecasted value and expected value
+    """
     # flatten data
     data = array(history)
     data = data.reshape((data.shape[0]*data.shape[1], data.shape[2]))
@@ -218,20 +281,46 @@ def forecast(model, history, n_input, single_value=True):
     yhat = yhat[0][0][0]
     return yhat, expected
 
+def make_lstm(lagged_timesteps, epochs):
+    """
+    Makes, evaluates, and graphs the loss of an LSTM
 
-if __name__ == "__main__":
-    df_solar_train = pd.read_csv("/home/nelson/PycharmProjects/"
-                           "Solar Forecasting Thesis Project/Data/"
-                           "small_test_data/small_train_data.csv", index_col="time", parse_dates=True)
-    df_solar_test = pd.read_csv("/home/nelson/PycharmProjects/"
-                                 "Solar Forecasting Thesis Project/Data/"
-                                 "small_test_data/small_test_data.csv", index_col="time", parse_dates=True)
-    lagged_timesteps = 15
+    :param lagged_timesteps: amount of lag for the time steps
+    :param epochs: number of epochs to use
+    :return: nothing. Will output save LSTM models, txt file with saved eval scores, and a png of model loss
+    """
+
+    # make sure to absolute paths since errors can occur if only relative paths are used
+    training_data = "/home/nelson/PycharmProjects/" \
+                    "Solar Forecasting Thesis Project/Data/" \
+                    "small_test_data/small_train_data.csv"
+    testing_data = "/home/nelson/PycharmProjects/" \
+                   "Solar Forecasting Thesis Project/Data/" \
+                   "small_test_data/small_test_data.csv"
+    validation_data = "/home/nelson/PycharmProjects/" \
+                      "Solar Forecasting Thesis Project/" \
+                      "Data/small_test_data/small_val_data.csv"
+    score_file = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/" \
+                 "Forecast/LSTM/LSTM_scores_multi_var_lag_{0}.txt".format(lagged_timesteps)
+    loss_figure_file = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/" \
+                       "Forecast/LSTM/LSTM_multi_var-loss-lag-{0}.png".format(lagged_timesteps)
+
+    df_solar_train = pd.read_csv(training_data, index_col="time", parse_dates=True)
+    df_solar_test = pd.read_csv(testing_data, index_col="time", parse_dates=True)
+    df_solar_val = pd.read_csv(validation_data, index_col="time", parse_dates=True)
+
     data_solar_train = chunk_data(df_solar_train.values, lagged_timesteps)
     data_solar_test = chunk_data(df_solar_test.values, lagged_timesteps)
-    x, y = split_data_to_x_y(data_solar_train, lagged_timesteps)
-    model = build_model(x, y)
-    timestep_history = [x for x in data_solar_train]
+    data_solar_val = chunk_data(df_solar_val.values, lagged_timesteps)
+
+    x_val, y_val = split_data_to_x_y(data_solar_val, lagged_timesteps)
+    x_train, y_train = split_data_to_x_y(data_solar_train, lagged_timesteps)
+
+    model, history = build_model(lagged_timesteps,
+                                 x_train, y_train, val=(x_val, y_val), epochs=epochs)
+    timestep_history = [x_train for x_train in data_solar_train]
+
+    # began forecasting on the testing data
     predictions = list()
     expected_values = list()
     for i in range(len(data_solar_test)):
@@ -245,8 +334,29 @@ if __name__ == "__main__":
     predictions = array(predictions)
     expected_values = array(expected_values)
 
+    # calculate metrics for eval
     residuals, scores = forecast_evals(predictions, expected_values)
+    file = open(score_file, "w")
+    file.write(str(scores) + "\n")
     print(scores)
+
+    # graph loss
+    plt.style.use("ggplot")
+    plt.figure()
+    plt.plot(np.arange(0, len(history.history["loss"])), history.history["loss"], label="train_loss")
+    plt.plot(np.arange(0, len(history.history["val_loss"])), history.history["val_loss"], label="val_loss")
+    plt.title("Validation loss and training loss")
+    plt.xlabel("Epoch #")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig(loss_figure_file)
+    plt.show()
+
+
+if __name__ == "__main__":
+    make_lstm(5, 10)
+    # lagged_timesteps = 5
+    # epochs = 10
 
 
 
