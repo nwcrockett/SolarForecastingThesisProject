@@ -43,6 +43,7 @@ Took since I find this to be really useful code for this project and others
 
 """
 
+
 def _percentage_error(actual: np.ndarray, predicted: np.ndarray):
     """
     Percentage error
@@ -281,6 +282,7 @@ def forecast(model, history, n_input):
     yhat = yhat[0][0][0]
     return yhat, expected
 
+
 def make_lstm(lagged_timesteps, epochs):
     """
     Makes, evaluates, and graphs the loss of an LSTM
@@ -291,15 +293,16 @@ def make_lstm(lagged_timesteps, epochs):
     """
 
     # make sure to absolute paths since errors can occur if only relative paths are used
+
     training_data = "/home/nelson/PycharmProjects/" \
                     "Solar Forecasting Thesis Project/Data/" \
-                    "small_test_data/small_train_data.csv"
+                    "train/fully processes minute data.csv"
     testing_data = "/home/nelson/PycharmProjects/" \
                    "Solar Forecasting Thesis Project/Data/" \
-                   "small_test_data/small_test_data.csv"
+                   "test/fully processes minute data.csv"
     validation_data = "/home/nelson/PycharmProjects/" \
                       "Solar Forecasting Thesis Project/" \
-                      "Data/small_test_data/small_val_data.csv"
+                      "Data/validate/fully processes minute data.csv"
     score_file = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/" \
                  "Forecast/LSTM/LSTM_scores_multi_var_lag_{0}.txt".format(lagged_timesteps)
     loss_figure_file = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/" \
@@ -368,7 +371,7 @@ def make_lstm(lagged_timesteps, epochs):
 
 
 if __name__ == "__main__":
-    e = 2
+    e = 50
     lags = [20, 30, 40]
 
     for i in lags:
