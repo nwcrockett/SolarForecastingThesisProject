@@ -1,3 +1,20 @@
+"""
+Nelson Crockett
+19JAN20
+LSTM multi-variable code for solar forecasting thesis project
+
+I must note that I have code from github user Boris Shishov bshishov
+Taken from https://gist.github.com/bshishov/5dc237f59f019b26145648e2124ca1c9
+Used to evaluate forecast variables. Mainly for Mean absolute scaled error
+
+I also had part of my code inspired from code from Jason Brownlee
+book Deep Learning Time Series Forecasting
+publisher machine learning mastery
+
+
+"""
+
+
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
@@ -251,6 +268,16 @@ def build_model(lag, train_x, train_y, val=None, epochs=10, verbose=1, batch_siz
 
 
 def make_lstm(lagged_timesteps, epochs):
+    """
+        Makes, evaluates, and graphs the loss of an LSTM
+
+        :param lagged_timesteps: amount of lag for the time steps
+        :param epochs: number of epochs to use
+        :return: nothing. Will output save LSTM models, txt file with saved eval scores, and a png of model loss
+        """
+
+    # make sure to absolute paths since errors can occur if only relative paths are used
+
     training_data = "/home/nelson/PycharmProjects/" \
                     "Solar Forecasting Thesis Project/Data/" \
                     "train/fully processes minute data.csv"

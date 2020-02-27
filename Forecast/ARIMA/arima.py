@@ -10,9 +10,13 @@ from sklearn.metrics import mean_squared_error
 from math import sqrt
 from statsmodels.tsa.stattools import acf
 import pmdarima as pm
+import warnings
+warnings.filterwarnings("ignore")
 
 EPSILON = 1e-10
 np.set_printoptions(precision=3, suppress=True)
+DATA_PATH = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/test/"
+RESULTS_STORAGE_PATH = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Forecast/ARIMA/"
 
 
 """
@@ -142,7 +146,10 @@ def arima_short_range_forecast(df, sample_range=20, p=2, d=1, q=0):
     # need to cover all zero values failure
     predicted = []
     expected = []
+    failures = 0
     for i in range(0, len(df)):
+        if failures == 3000:
+            break
         if i + sample_range > len(df):
             break
         sample = df[i:i + sample_range]  # sample
@@ -150,32 +157,80 @@ def arima_short_range_forecast(df, sample_range=20, p=2, d=1, q=0):
         if check_vals.all() == 0:  # all 0 values cannot be forecasted with ARIMA
             continue
 
-        model = ARIMA(sample["downwelling_shortwave"], order=(p, d, q))
-        model_fit = model.fit(disp=0)
-        forecast = model_fit.forecast(steps=20)
-        predicted.append(forecast[0][-1])
-        expected.append(sample["forecast_downwelling_shortwave"][-1])
+        try:
+            model = ARIMA(sample["downwelling_shortwave"], order=(p, d, q))
+            model_fit = model.fit(disp=0)
+            forecast = model_fit.forecast(steps=20)
+            predicted.append(forecast[0][-1])
+            expected.append(sample["forecast_downwelling_shortwave"][-1])
+        except:
+            print("failure at index {}".format(i))
+            failures += 1
     return predicted, expected
 
 
-def test_arima_parameters_short_sample(df, p_max=10, d_max=2, q_max=3, start_range="2015-04", end_range="2015-06"):
+def test_arima_parameters_short_sample(df, p_max=10, d_max=2, q_max=3,
+                                       start_range="2013-04-14", end_range="2013-04-21"):
     sample = df[start_range:end_range]
-    file = open("Forecast/ARIMA/arima_parameter_test_short.txt", "w")
+    file = open(RESULTS_STORAGE_PATH + "arima_parameter_test_short.txt", "w")
     for d in range(1, d_max + 1):
         for q in range(q_max + 1):
             for p in range(p_max + 1):
                 predicted, expected = arima_short_range_forecast(sample, p=p, d=d, q=q)
                 predicted = np.array(predicted)
                 expected = np.array(expected)
-                results = forecast_evals(predicted, expected)
+                residuls, results = forecast_evals(predicted, expected)
                 parameters = " p={} d={} q={}".format(p, d, q)
                 print(str(results) + parameters)
                 file.write(str(results) + parameters + "\n")
 
 
+def arima_forecast(df, sample_range, p=10, d=1, q=1):
+    predicted = []
+    expected = []
+    index = []
+    failures = 0
+    file = open(RESULTS_STORAGE_PATH + "arima_parameter_fails_{}.txt".format(sample_range), "w")
+    for i in range(0, len(df)):
+        sample = df[i:i + sample_range]  # sample
+        check_vals = sample["downwelling_shortwave"].values
+        if check_vals.all() == 0:  # all 0 values cannot be forecasted with ARIMA
+            continue
+
+        try:
+            model = ARIMA(sample["downwelling_shortwave"], order=(p, d, q))
+            model_fit = model.fit(disp=0)
+            forecast = model_fit.forecast(steps=20)
+            predicted.append(forecast[0][-1])
+            expected.append(sample["forecast_downwelling_shortwave"][-1])
+            index.append(i)
+        except:
+            file.write("failure at index {}".format(i))
+            failures += 1
+
+    d = {"index": index, "expected": expected, "predicted": predicted}
+    df_storage = pd.DataFrame(data=d)
+    df_storage.to_csv(RESULTS_STORAGE_PATH + "results_{}.csv".format(sample_range))
+
+    return predicted, expected
+
+
+def run_arima_forecast(df, p=10, d=1, q=1):
+    ranges = [20, 30, 40]
+    file = open(RESULTS_STORAGE_PATH + "arima_parameter_results.txt", "w")
+    for item in ranges:
+        predicted, expected = arima_forecast(df, item, p=p, d=d, q=q)
+        predicted = np.array(predicted)
+        expected = np.array(expected)
+        residuls, results = forecast_evals(predicted, expected)
+        parameters = " range=".format(item)
+        print(str(results) + parameters)
+        file.write(str(results) + parameters + "\n")
+
+
 if __name__ == "__main__":
-    df = pd.read_csv("Data/test/fully processes minute data.csv", index_col="time", parse_dates=True)
-    test_arima_parameters_short_sample(df, p_max=3, d_max=2, q_max=1)
+    df_solar = pd.read_csv(DATA_PATH + "fully processes minute data.csv", index_col="time", parse_dates=True)
+    run_arima_forecast(df_solar)
 
 
 
