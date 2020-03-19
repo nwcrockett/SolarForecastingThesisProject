@@ -316,8 +316,8 @@ if __name__ == "__main__":
         train = seq[:-20]
         test = seq
 
-        sl = sequence_labeling_dataset(train, 1000, False)
-        sl_t = sequence_labeling_dataset(test, 1000, False)
+        sl = sequence_labeling_dataset(train, 1000, False, 20, 20)
+        sl_t = sequence_labeling_dataset(test, 1000, False, 20, 20)
 
         train_dl = DataLoader(dataset=sl,
                               batch_size=512,

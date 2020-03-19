@@ -288,6 +288,78 @@ class sequence_labeling_dataset(Dataset):
 
         return inp, out, shift_steps
 
+
+def run_es_rnn(seq):
+    train = seq[:-20]
+    test = seq
+
+    sl = sequence_labeling_dataset(train, 1000, False, 20, 20)
+    sl_t = sequence_labeling_dataset(test, 1000, False, 20, 20)
+
+    train_dl = DataLoader(dataset=sl,
+                          batch_size=512,
+                          shuffle=False)
+
+    test_dl = DataLoader(dataset=sl_t,
+                         batch_size=512,
+                         shuffle=False)
+
+    hw = es_rnn(slen=20, pred_len=20)
+    opti = torch.optim.Adam(hw.parameters(), lr=0.01)
+
+    overall_loss = []
+    batch = next(iter(test_dl))
+    inp = batch[0].float()  # .unsqueeze(2)
+    out = batch[1].float()  # .unsqueeze(2).float()
+    shifts = batch[2].numpy()
+    pred = hw(inp, shifts)
+
+    overall_loss_train = []
+    overall_loss = []
+    for j in tqdm(range(5)):
+        loss_list_b = []
+        train_loss_list_b = []
+        # here we use batches of past, and to be forecasted value
+        # batches are determined by a random start integer
+        for batch in iter(train_dl):
+            opti.zero_grad()
+            inp = batch[0].float()  # .unsqueeze(2)
+            out = batch[1].float()  # .unsqueeze(2).float()
+            shifts = batch[2].numpy()
+            # it returns the whole sequence atm
+            print(inp)
+            print()
+            print(shifts)
+            pred = hw(inp, shifts)
+            loss = (torch.mean((pred - out) ** 2)) ** (1 / 2)
+            train_loss_list_b.append(loss.detach().cpu().numpy())
+
+            loss.backward()
+            opti.step()
+
+        # here we use all the available values to forecast the future ones and eval on it
+        for batch in iter(test_dl):
+            inp = batch[0].float()  # .unsqueeze(2)
+            out = batch[1].float()  # .unsqueeze(2).float()
+            shifts = batch[2].numpy()
+            pred = hw(inp, shifts)
+            # loss=torch.mean(torch.abs(pred-out))
+            loss = (torch.mean((pred - out) ** 2)) ** (1 / 2)
+            loss_list_b.append(loss.detach().cpu().numpy())
+
+        print(np.mean(loss_list_b))
+        print(np.mean(train_loss_list_b))
+        overall_loss.append(np.mean(loss_list_b))
+        overall_loss_train.append(np.mean(train_loss_list_b))
+
+    batch = next(iter(test_dl))
+    inp = batch[0].float()  # .unsqueeze(2)
+    out = batch[1].float()  # .unsqueeze(2).float()
+    shifts = batch[2].numpy()
+    pred = hw(torch.cat([inp, out], dim=1), shifts)
+
+    return float(out[-1][-1]), float(pred[-1][-1])
+
 """
 This ends a marked off section of code taken from another source cited below
 Taken from https://github.com/lysecret2/ES-RNN-Pytorch
@@ -305,7 +377,7 @@ def setup_data(data, cut_size=60):
     for i in data["downwelling_shortwave"].values:
         if count + cut_size >= df_solar_test["downwelling_shortwave"].values.shape[0]:
             break
-        cut = df_solar_test["downwelling_shortwave"].values[count:cut_size]
+        cut = df_solar_test["downwelling_shortwave"].values[count:count + cut_size]
         count += 1
         hour.append(cut)
 
@@ -321,97 +393,21 @@ if __name__ == "__main__":
 
     df_solar_test = df_solar_test["2013-07"]
 
-    hours = setup_data(df_solar_test["downwelling_shortwave"])
+    hours = setup_data(df_solar_test)
 
     actual = []
     forecast = []
     count_length = 0
     index = []
 
-    """
-    This starts off a marked off section of code taken from another source cited below
-    Taken from https://github.com/lysecret2/ES-RNN-Pytorch
-    author: Slawek Smyl
-    Date: 189MAR2020
-
-    Code was taken since I'm using Slawek's ES-RNN algorithm to forecast
-    """
-
-    for seq in hours:
+    for seq in hours[0:20]:
         index.append(count_length)
         print("{} current count. {} need to reach".format(count_length, len(hours)))
-
-        train = seq[:-20]
-        test = seq
-
-        sl = sequence_labeling_dataset(train, 1000, False)
-        sl_t = sequence_labeling_dataset(test, 1000, False)
-
-        train_dl = DataLoader(dataset=sl,
-                              batch_size=512,
-                              shuffle=False)
-
-        test_dl = DataLoader(dataset=sl_t,
-                             batch_size=512,
-                             shuffle=False)
-
-        hw = es_rnn()
-        opti = torch.optim.Adam(hw.parameters(), lr=0.01)
-
-        overall_loss_train = []
-        overall_loss = []
-        for j in tqdm(range(5)):
-            loss_list_b = []
-            train_loss_list_b = []
-            # here we use batches of past, and to be forecasted value
-            # batches are determined by a random start integer
-            for batch in iter(train_dl):
-                opti.zero_grad()
-                inp = batch[0].float()  # .unsqueeze(2)
-                out = batch[1].float()  # .unsqueeze(2).float()
-                shifts = batch[2].numpy()
-                # it returns the whole sequence atm
-                pred = hw(inp, shifts)
-                loss = (torch.mean((pred - out) ** 2)) ** (1 / 2)
-                train_loss_list_b.append(loss.detach().cpu().numpy())
-
-                loss.backward()
-                opti.step()
-
-            # here we use all the available values to forecast the future ones and eval on it
-            for batch in iter(test_dl):
-                inp = batch[0].float()  # .unsqueeze(2)
-                out = batch[1].float()  # .unsqueeze(2).float()
-                shifts = batch[2].numpy()
-                pred = hw(inp, shifts)
-                # loss=torch.mean(torch.abs(pred-out))
-                loss = (torch.mean((pred - out) ** 2)) ** (1 / 2)
-                loss_list_b.append(loss.detach().cpu().numpy())
-
-            print(np.mean(loss_list_b))
-            print(np.mean(train_loss_list_b))
-            overall_loss.append(np.mean(loss_list_b))
-            overall_loss_train.append(np.mean(train_loss_list_b))
-
-        batch = next(iter(test_dl))
-        inp = batch[0].float()  # .unsqueeze(2)
-        out = batch[1].float()  # .unsqueeze(2).float()
-        shifts = batch[2].numpy()
-        pred = hw(torch.cat([inp, out], dim=1), shifts)
-
-        actual.append(float(out[-1][-1]))
-        forecast.append(float(pred[-1][-1]))
+        a, f = run_es_rnn(seq)
+        actual.append(a)
+        forecast.append(f)
 
         count_length += 1
-
-    """
-    This ends a marked off section of code taken from another source cited below
-    Taken from https://github.com/lysecret2/ES-RNN-Pytorch
-    author: Slawek Smyl
-    Date: 189MAR2020
-
-    Code was taken since I'm using Slawek's ES-RNN algorithm to forecast
-    """
 
     actual = np.array(actual)
     forecast = np.array(forecast)
