@@ -327,9 +327,6 @@ def run_es_rnn(seq):
             out = batch[1].float()  # .unsqueeze(2).float()
             shifts = batch[2].numpy()
             # it returns the whole sequence atm
-            print(inp)
-            print()
-            print(shifts)
             pred = hw(inp, shifts)
             loss = (torch.mean((pred - out) ** 2)) ** (1 / 2)
             train_loss_list_b.append(loss.detach().cpu().numpy())
