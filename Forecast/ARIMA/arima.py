@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore")
 
 EPSILON = 1e-10
 np.set_printoptions(precision=3, suppress=True)
-DATA_PATH = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/test/"
+TEST_DATA_PATH = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/test/"
 RESULTS_STORAGE_PATH = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Forecast/ARIMA/"
 
 
@@ -216,7 +216,7 @@ def arima_forecast(df, sample_range, p=10, d=1, q=1):
 
 
 def run_arima_forecast(df, p=10, d=1, q=1):
-    ranges = [20, 30, 40]
+    ranges = [30, 40]
     file = open(RESULTS_STORAGE_PATH + "arima_parameter_results.txt", "w")
     for item in ranges:
         predicted, expected = arima_forecast(df, item, p=p, d=d, q=q)
@@ -229,7 +229,7 @@ def run_arima_forecast(df, p=10, d=1, q=1):
 
 
 if __name__ == "__main__":
-    df_solar = pd.read_csv(DATA_PATH + "fully processes minute data.csv", index_col="time", parse_dates=True)
+    df_solar = pd.read_csv(TEST_DATA_PATH + "fully processes minute data.csv", index_col="time", parse_dates=True)
     run_arima_forecast(df_solar)
 
 

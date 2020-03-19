@@ -10,13 +10,13 @@ from numpy import array
 from numpy import split
 from sklearn.metrics import mean_squared_error
 import warnings
+
 warnings.filterwarnings("ignore")
 
 EPSILON = 1e-10
 np.set_printoptions(precision=3, suppress=True)
 TEST_DATA_PATH = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/test/"
 RESULTS_STORAGE_PATH = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Forecast/ARIMA/"
-
 
 """
 Taken from https://gist.github.com/bshishov/5dc237f59f019b26145648e2124ca1c9
@@ -58,7 +58,6 @@ def mase(actual: np.ndarray, predicted: np.ndarray, seasonality: int = 1):
 
 
 def forecast_evals(forecasted: np.ndarray, actual: np.ndarray):
-
     try:
         me = np.mean(forecasted - actual)  # mean error
     except Exception as err:
@@ -106,8 +105,18 @@ def forecast_evals(forecasted: np.ndarray, actual: np.ndarray):
         mase_ = 'Unable to compute metric {0}'.format(err)
 
     return residuals, ({'me': me, 'mae': mae_, "mse": mse,
-              'rmse': rmse, "over_shot": over_expect, "mfe": mfe,
-             'corr': corr, "mase": mase_})
+                        'rmse': rmse, "over_shot": over_expect, "mfe": mfe,
+                        'corr': corr, "mase": mase_})
+
+
+"""
+This starts off a marked off section of code taken from another source cited below
+Taken from https://github.com/lysecret2/ES-RNN-Pytorch
+author: Slawek Smyl
+Date: 189MAR2020
+
+Code was taken since I'm using Slawek's ES-RNN algorithm to forecast
+"""
 
 class holt_winters_no_trend(torch.nn.Module):
 
@@ -169,7 +178,7 @@ class holt_winters_no_trend(torch.nn.Module):
                 val = series[:, i]
 
                 last_smooth, smooth = smooth, self.sig(self.alpha) * (val - seasonals[i % self.slen]) + (
-                            1 - self.sig(self.alpha)) * (smooth)
+                        1 - self.sig(self.alpha)) * (smooth)
 
                 seasonals[i % self.slen] = self.sig(self.gamma) * (val - smooth) + (1 - self.sig(self.gamma)) * \
                                            seasonals[i % self.slen]
@@ -279,6 +288,15 @@ class sequence_labeling_dataset(Dataset):
 
         return inp, out, shift_steps
 
+"""
+This ends a marked off section of code taken from another source cited below
+Taken from https://github.com/lysecret2/ES-RNN-Pytorch
+author: Slawek Smyl
+Date: 189MAR2020
+
+Code was taken since I'm using Slawek's ES-RNN algorithm to forecast
+"""
+
 
 def setup_data(data, cut_size=60):
     hour = []
@@ -301,7 +319,7 @@ if __name__ == "__main__":
 
     df_solar_test = pd.read_csv(testing_data, index_col="time", parse_dates=True)
 
-    df_solar_test = df_solar_test["2013-08-22"]
+    df_solar_test = df_solar_test["2013-07"]
 
     hours = setup_data(df_solar_test["downwelling_shortwave"])
 
@@ -309,7 +327,17 @@ if __name__ == "__main__":
     forecast = []
     count_length = 0
     index = []
-    for seq in hours[0:3]:
+
+    """
+    This starts off a marked off section of code taken from another source cited below
+    Taken from https://github.com/lysecret2/ES-RNN-Pytorch
+    author: Slawek Smyl
+    Date: 189MAR2020
+
+    Code was taken since I'm using Slawek's ES-RNN algorithm to forecast
+    """
+
+    for seq in hours:
         index.append(count_length)
         print("{} current count. {} need to reach".format(count_length, len(hours)))
 
@@ -371,11 +399,19 @@ if __name__ == "__main__":
         shifts = batch[2].numpy()
         pred = hw(torch.cat([inp, out], dim=1), shifts)
 
-
         actual.append(float(out[-1][-1]))
         forecast.append(float(pred[-1][-1]))
 
         count_length += 1
+
+    """
+    This ends a marked off section of code taken from another source cited below
+    Taken from https://github.com/lysecret2/ES-RNN-Pytorch
+    author: Slawek Smyl
+    Date: 189MAR2020
+
+    Code was taken since I'm using Slawek's ES-RNN algorithm to forecast
+    """
 
     actual = np.array(actual)
     forecast = np.array(forecast)
@@ -389,6 +425,7 @@ if __name__ == "__main__":
     residuals, results = forecast_evals(forecast, actual)
     print(results)
     file.write(str(results))
+
 
 
 

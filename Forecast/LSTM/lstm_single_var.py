@@ -280,7 +280,7 @@ def make_lstm(lagged_timesteps, epochs):
 
     training_data = "/home/nelson/PycharmProjects/" \
                     "Solar Forecasting Thesis Project/Data/" \
-                    "train/fully processes minute data.csv"
+                    "train/fully processing minute data.csv"
     testing_data = "/home/nelson/PycharmProjects/" \
                    "Solar Forecasting Thesis Project/Data/" \
                    "test/fully processes minute data.csv"
