@@ -15,8 +15,14 @@ warnings.filterwarnings("ignore")
 
 EPSILON = 1e-10
 np.set_printoptions(precision=3, suppress=True)
+
+# my computer paths
 TEST_DATA_PATH = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Data/test/"
 RESULTS_STORAGE_PATH = "/home/nelson/PycharmProjects/Solar Forecasting Thesis Project/Forecast/ARIMA/"
+
+# server paths
+# TEST_DATA_PATH = "/home/nelson/"
+# RESULTS_STORAGE_PATH = "/home/nelson/"
 
 
 """
@@ -190,8 +196,12 @@ def arima_forecast(df, sample_range, p=10, d=1, q=1):
     expected = []
     index = []
     failures = 0
+    count = 0
     file = open(RESULTS_STORAGE_PATH + "arima_parameter_fails_{}.txt".format(sample_range), "w")
     for i in range(0, len(df)):
+        count += 1
+        if (count / 100) == 0:
+            print("currently {} aiming to {}".format(count, len(df)))
         sample = df[i:i + sample_range]  # sample
         check_vals = sample["downwelling_shortwave"].values
         if check_vals.all() == 0:  # all 0 values cannot be forecasted with ARIMA
@@ -216,7 +226,7 @@ def arima_forecast(df, sample_range, p=10, d=1, q=1):
 
 
 def run_arima_forecast(df, p=10, d=1, q=1):
-    ranges = [30, 40]
+    ranges = [40]
     file = open(RESULTS_STORAGE_PATH + "arima_parameter_results.txt", "w")
     for item in ranges:
         predicted, expected = arima_forecast(df, item, p=p, d=d, q=q)

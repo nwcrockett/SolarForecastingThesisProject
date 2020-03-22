@@ -388,16 +388,20 @@ if __name__ == "__main__":
 
     df_solar_test = pd.read_csv(testing_data, index_col="time", parse_dates=True)
 
-    df_solar_test = df_solar_test["2013-07"]
+    df_solar_test = df_solar_test["2013-06":"2013-08"]
+    
+    balancer = df_solar_test.shape[0] % 60
 
-    hours = setup_data(df_solar_test)
+    hours = array(split(df_solar_test["downwelling_shortwave"].values[:-balancer],
+                        len(df_solar_test["downwelling_shortwave"].values[:-balancer]) / 60))
+
 
     actual = []
     forecast = []
     count_length = 0
     index = []
 
-    for seq in hours[0:20]:
+    for seq in hours:
         index.append(count_length)
         print("{} current count. {} need to reach".format(count_length, len(hours)))
         a, f = run_es_rnn(seq)
